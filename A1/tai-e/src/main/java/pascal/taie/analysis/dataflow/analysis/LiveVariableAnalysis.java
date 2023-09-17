@@ -25,8 +25,14 @@ package pascal.taie.analysis.dataflow.analysis;
 import pascal.taie.analysis.dataflow.fact.SetFact;
 import pascal.taie.analysis.graph.cfg.CFG;
 import pascal.taie.config.AnalysisConfig;
+import pascal.taie.ir.exp.LValue;
+import pascal.taie.ir.exp.RValue;
 import pascal.taie.ir.exp.Var;
 import pascal.taie.ir.stmt.Stmt;
+
+import java.util.Collection;
+import java.util.List;
+import java.util.Optional;
 
 /**
  * Implementation of classic live variable analysis.
@@ -48,23 +54,55 @@ public class LiveVariableAnalysis extends
     @Override
     public SetFact<Var> newBoundaryFact(CFG<Stmt> cfg) {
         // TODO - finish me
-        return null;
+        SetFact<Var> in_exit = new SetFact<Var>();
+
+        return in_exit;
     }
 
     @Override
     public SetFact<Var> newInitialFact() {
         // TODO - finish me
-        return null;
+        SetFact<Var> in = new SetFact<Var>();
+        return in;
     }
 
     @Override
     public void meetInto(SetFact<Var> fact, SetFact<Var> target) {
         // TODO - finish me
+        target.union(fact);
     }
 
     @Override
     public boolean transferNode(Stmt stmt, SetFact<Var> in, SetFact<Var> out) {
         // TODO - finish me
-        return false;
+        Optional<LValue> _def = stmt.getDef();
+        SetFact<Var> temp_out = new SetFact<Var>();
+        temp_out.set(out);
+        try {
+            LValue temp =  _def.get();
+            Var def = (Var)temp;
+            temp_out.remove(def);
+        } catch (Exception e) {}
+        List<RValue> _use_list = stmt.getUses();
+        SetFact<Var> useVar = new SetFact<>();
+        for (int i = 0; i < _use_list.size(); ++i) {
+            try {
+                Var item = (Var) _use_list.get(i);
+                if (!useVar.contains(item)) {
+                    useVar.add(item);
+                }
+            } catch (Exception e) {
+                continue;
+            }
+        }
+        try {
+            useVar.union(temp_out);
+        } catch (Exception e) {}
+        if (in.equals(useVar)) {
+            return false;
+        } else {
+            in.set(useVar);
+            return true;
+        }
     }
 }
